@@ -1,0 +1,2515 @@
+openapi: 3.0.3
+info:
+  title: Point of Sale System API
+  description: >
+    API for managing products, inventory, sales, transactions, and employees in a POS system.
+
+    **Versioning Strategy**:
+    This API follows semantic versioning. The version is indicated in the base path (`/v1`).
+    Backward-incompatible changes will result in a major version increment.
+
+  version: 1.0.0
+  license:
+    name: MIT License
+    url: https://opensource.org/license/mit
+  termsOfService: https://pandac.in/terms
+  contact:
+    name: Pandac.in Support
+    url: https://pandac.in
+    email: support@pandac.in
+servers:
+  - url: 'https://api.pandac.in/v1'
+    description: Production server
+  - url: 'https://sandbox.api.pandac.in/v1'
+    description: Testing server
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      security: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /sales:
+    get:
+      tags: 
+        - Sales
+      summary: Get all sales
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sale'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags: 
+        - Sales
+      summary: Create a new sale
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Sale'
+      responses:
+        '201':
+          description: Sale created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /sales/{saleId}:
+    get:
+      tags: 
+        - Sales      
+      summary: Get a sale by ID
+      parameters:
+        - in: path
+          name: saleId
+          schema:
+            type: string
+          required: true
+          description: ID of the sale to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+          links:
+            TransactionBySale:
+              operationId: getTransactionBySaleId
+              parameters:
+                saleId: $response.body#/saleID
+            CustomerBySale:
+              operationId: getCustomerBySaleId
+              parameters:
+                saleId: $response.body#/saleID
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Sales
+      summary: Update a sale by ID
+      parameters:
+        - in: path
+          name: saleId
+          schema:
+            type: string
+          required: true
+          description: ID of the sale to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Sale'
+      responses:
+        '200':
+          description: Sale updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Sales
+      summary: Delete a sale by ID
+      parameters:
+        - in: path
+          name: saleId
+          schema:
+            type: string
+          required: true
+          description: ID of the sale to delete
+      responses:
+        '204':
+          description: Sale deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /sales/{saleId}/transaction:
+    get:
+      tags:
+        - Sales
+      summary: Get transaction associated with a sale
+      operationId: getTransactionBySaleId
+      parameters:
+        - in: path
+          name: saleId
+          schema:
+            type: string
+          required: true
+          description: ID of the sale
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /sales/{saleId}/customer:
+    get:
+      tags:
+        - Sales
+      summary: Get customer associated with a sale
+      operationId: getCustomerBySaleId
+      parameters:
+        - in: path
+          name: saleId
+          schema:
+            type: string
+          required: true
+          description: ID of the sale
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /customers:
+    get:
+      tags: 
+        - Customers    
+      summary: Get all customers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags: 
+        - Customers    
+      summary: Create a new customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        '201':
+          description: Customer created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /customers/{customerId}:
+    get:
+      tags: 
+        - Customers    
+      summary: Get a customer by ID
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: ID of the customer to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          links:
+            SalesByCustomer:
+              operationId: getSalesByCustomerId
+              parameters:
+                customerId: $response.body#/customerID
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Customers
+      summary: Update a customer by ID
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: ID of the customer to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        '200':
+          description: Customer updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Customers
+      summary: Delete a customer by ID
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: ID of the customer to delete
+      responses:
+        '204':
+          description: Customer deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /customers/{customerId}/sales:
+    get:
+      tags:
+        - Customers
+      summary: Get all sales for a customer
+      operationId: getSalesByCustomerId
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: ID of the customer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sale'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  
+  /customers/{customerId}/loyalty-program:
+    get:
+      tags:
+        - Loyalty Program
+      summary: Get loyalty program details for a customer
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+          required: true
+          description: ID of the customer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyProgram'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /loyalty-programs:
+    get:
+      tags:
+        - Loyalty Program
+      summary: Get all loyalty programs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoyaltyProgram'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Loyalty Program
+      summary: Create a new loyalty program
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoyaltyProgram'
+      responses:
+        '201':
+          description: Loyalty program created successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /loyalty-programs/{programId}:
+    get:
+      tags:
+        - Loyalty Program
+      summary: Get a loyalty program by ID
+      parameters:
+        - in: path
+          name: programId
+          schema:
+            type: string
+          required: true
+          description: ID of the loyalty program to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyProgram'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Loyalty Program
+      summary: Update a loyalty program by ID
+      parameters:
+        - in: path
+          name: programId
+          schema:
+            type: string
+          required: true
+          description: ID of the loyalty program to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoyaltyProgram'
+      responses:
+        '200':
+          description: Loyalty program updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Loyalty Program
+      summary: Delete a loyalty program by ID
+      parameters:
+        - in: path
+          name: programId
+          schema:
+            type: string
+          required: true
+          description: ID of the loyalty program to delete
+      responses:
+        '204':
+          description: Loyalty program deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'                  
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'          
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get a product by ID
+      parameters:
+        - in: path
+          name: productId
+          schema:
+            type: string
+          required: true
+          description: ID of the product to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          links:
+            InventoryByProduct:
+              operationId: getInventoryByProductId
+              parameters:
+                productId: $response.body#/productID
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Products
+      summary: Update a product by ID
+      parameters:
+        - in: path
+          name: productId
+          schema:
+            type: string
+          required: true
+          description: ID of the product to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Products
+      summary: Delete a product by ID
+      parameters:
+        - in: path
+          name: productId
+          schema:
+            type: string
+          required: true
+          description: ID of the product to delete
+      responses:
+        '204':
+          description: Product deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /products/{productId}/inventory:
+    get:
+      tags:
+        - Products
+      summary: Get inventory information for a product
+      operationId: getInventoryByProductId
+      parameters:
+        - in: path
+          name: productId
+          schema:
+            type: string
+          required: true
+          description: ID of the product
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get all transactions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Transactions
+      summary: Create a new transaction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '201':
+          description: Transaction created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /transactions/{transactionId}:
+    get:
+      tags:
+        - Transactions
+      summary: Get a transaction by ID
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          links:
+            EmployeeByTransaction:
+              operationId: getEmployeeByTransactionId
+              parameters:
+                transactionId: $response.body#/transactionID
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Transactions
+      summary: Update a transaction by ID
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '200':
+          description: Transaction updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Transactions
+      summary: Delete a transaction by ID
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction to delete
+      responses:
+        '204':
+          description: Transaction deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /transactions/{transactionId}/employee:
+    get:
+      tags:
+        - Transactions
+      summary: Get employee associated with a transaction
+      operationId: getEmployeeByTransactionId
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /transactions/{transactionId}/sale:
+    get:
+      tags:
+        - Transactions
+      summary: Get sale associated with a transaction
+      operationId: getSaleByTransactionId
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /transactions/{transactionId}/payment:
+    get:
+      tags:
+        - Transactions
+        - Payments
+      summary: Get payment associated with a transaction
+      operationId: getPaymentByTransactionId
+      parameters:
+        - in: path
+          name: transactionId
+          schema:
+            type: string
+          required: true
+          description: ID of the transaction
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: Get all payments
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Payments
+      summary: Create a new payment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+      responses:
+        '201':
+          description: Payment created successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /payments/{paymentId}:
+    get:
+      tags:
+        - Payments
+      summary: Get a payment by ID
+      parameters:
+        - in: path
+          name: paymentId
+          schema:
+            type: string
+          required: true
+          description: ID of the payment to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Payments
+      summary: Update a payment by ID
+      parameters:
+        - in: path
+          name: paymentId
+          schema:
+            type: string
+          required: true
+          description: ID of the payment to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+      responses:
+        '200':
+          description: Payment updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Payments
+      summary: Delete a payment by ID
+      parameters:
+        - in: path
+          name: paymentId
+          schema:
+            type: string
+          required: true
+          description: ID of the payment to delete
+      responses:
+        '204':
+          description: Payment deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get a user by ID
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: ID of the user to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Users
+      summary: Update a user by ID
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: ID of the user to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Users
+      summary: Delete a user by ID
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: ID of the user to delete
+      responses:
+        '204':
+          description: User deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /roles:
+    get:
+      tags:
+        - Roles
+      summary: Get all roles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Roles
+      summary: Create a new role
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+      responses:
+        '201':
+          description: Role created successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /roles/{roleId}:
+    get:
+      tags:
+        - Roles
+      summary: Get a role by ID
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+          description: ID of the role to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Roles
+      summary: Update a role by ID
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+          description: ID of the role to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+      responses:
+        '200':
+          description: Role updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Roles
+      summary: Delete a role by ID
+      parameters:
+        - in: path
+          name: roleId
+          schema:
+            type: string
+          required: true
+          description: ID of the role to delete
+      responses:
+        '204':
+          description: Role deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /inventory:
+    get:
+      tags:
+        - Inventory
+      summary: Get all inventory items
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Inventory'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Inventory
+      summary: Create a new inventory item
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+      responses:
+        '201':
+          description: Inventory item created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /inventory/{inventoryId}:
+    get:
+      tags:
+        - Inventory
+      summary: Get an inventory item by ID
+      parameters:
+        - in: path
+          name: inventoryId
+          schema:
+            type: string
+          required: true
+          description: ID of the inventory item to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Inventory
+      summary: Update an inventory item by ID
+      parameters:
+        - in: path
+          name: inventoryId
+          schema:
+            type: string
+          required: true
+          description: ID of the inventory item to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+      responses:
+        '200':
+          description: Inventory item updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Inventory
+      summary: Delete an inventory item by ID
+      parameters:
+        - in: path
+          name: inventoryId
+          schema:
+            type: string
+          required: true
+          description: ID of the inventory item to delete
+      responses:
+        '204':
+          description: Inventory item deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /inventory/{inventoryId}/supplier:
+    get:
+      tags:
+        - Inventory
+      summary: Get supplier for an inventory item
+      operationId: getSupplierByInventoryId
+      parameters:
+        - in: path
+          name: inventoryId
+          schema:
+            type: string
+          required: true
+          description: ID of the inventory item
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /employees:
+    get:
+      tags:
+        - Employees
+      summary: Get all employees
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Employees
+      summary: Create a new employee
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+      responses:
+        '201':
+          description: Employee created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /employees/{employeeId}:
+    get:
+      tags:
+        - Employees
+      summary: Get an employee by ID
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+          required: true
+          description: ID of the employee to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Employees
+      summary: Update an employee by ID
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+          required: true
+          description: ID of the employee to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+      responses:
+        '200':
+          description: Employee updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Employees
+      summary: Delete an employee by ID
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+          required: true
+          description: ID of the employee to delete
+      responses:
+        '204':
+          description: Employee deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /employees/{employeeId}/transactions:
+    get:
+      tags:
+        - Employees
+      summary: Get all transactions processed by an employee
+      operationId: getTransactionsByEmployeeId
+      parameters:
+        - in: path
+          name: employeeId
+          schema:
+            type: string
+          required: true
+          description: ID of the employee
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /suppliers:
+    get:
+      tags:
+        - Suppliers
+      summary: Get all suppliers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Suppliers
+      summary: Create a new supplier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        '201':
+          description: Supplier created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /suppliers/{supplierId}:
+    get:
+      tags:
+        - Suppliers
+      summary: Get a supplier by ID
+      parameters:
+        - in: path
+          name: supplierId
+          schema:
+            type: string
+          required: true
+          description: ID of the supplier to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Suppliers
+      summary: Update a supplier by ID
+      parameters:
+        - in: path
+          name: supplierId
+          schema:
+            type: string
+          required: true
+          description: ID of the supplier to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        '200':
+          description: Supplier updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Suppliers
+      summary: Delete a supplier by ID
+      parameters:
+        - in: path
+          name: supplierId
+          schema:
+            type: string
+          required: true
+          description: ID of the supplier to delete
+      responses:
+        '204':
+          description: Supplier deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /purchase-orders:
+    get:
+      tags:
+        - Purchase Orders
+      summary: Get all purchase orders
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Purchase Orders
+      summary: Create a new purchase order
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrder'
+      responses:
+        '201':
+          description: Purchase order created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /purchase-orders/{purchaseOrderId}:
+    get:
+      tags:
+        - Purchase Orders
+      summary: Get a purchase order by ID
+      parameters:
+        - in: path
+          name: purchaseOrderId
+          schema:
+            type: string
+          required: true
+          description: ID of the purchase order to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Purchase Orders
+      summary: Update a purchase order by ID
+      parameters:
+        - in: path
+          name: purchaseOrderId
+          schema:
+            type: string
+          required: true
+          description: ID of the purchase order to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrder'
+      responses:
+        '200':
+          description: Purchase order updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Purchase Orders
+      summary: Delete a purchase order by ID
+      parameters:
+        - in: path
+          name: purchaseOrderId
+          schema:
+            type: string
+          required: true
+          description: ID of the purchase order to delete
+      responses:
+        '204':
+          description: Purchase order deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /discounts:
+    get:
+      tags:
+        - Discounts
+      summary: Get all discounts
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Discount'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Discounts
+      summary: Create a new discount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Discount'
+      responses:
+        '201':
+          description: Discount created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /discounts/{discountId}:
+    get:
+      tags:
+        - Discounts
+      summary: Get a discount by ID
+      parameters:
+        - in: path
+          name: discountId
+          schema:
+            type: string
+          required: true
+          description: ID of the discount to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discount'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Discounts
+      summary: Update a discount by ID
+      parameters:
+        - in: path
+          name: discountId
+          schema:
+            type: string
+          required: true
+          description: ID of the discount to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Discount'
+      responses:
+        '200':
+          description: Discount updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Discounts
+      summary: Delete a discount by ID
+      parameters:
+        - in: path
+          name: discountId
+          schema:
+            type: string
+          required: true
+          description: ID of the discount to delete
+      responses:
+        '204':
+          description: Discount deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reports/sales:
+    get:
+      tags:
+        - Reports
+      summary: Generate sales report
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          required: false
+          description: Start date for the report
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          required: false
+          description: End date for the report
+      responses:
+        '200':
+          description: Sales report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesReport'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get all notifications
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags:
+        - Notifications
+      summary: Create a new notification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      responses:
+        '201':
+          description: Notification created successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /settings:
+    get:
+      tags:
+        - Settings
+      summary: Get all settings
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Settings'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Settings
+      summary: Create a new setting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '201':
+          description: Setting created successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /settings/{settingId}:
+    get:
+      tags:
+        - Settings
+      summary: Get a setting by ID
+      parameters:
+        - in: path
+          name: settingId
+          schema:
+            type: string
+          required: true
+          description: ID of the setting to retrieve
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Settings
+      summary: Update a setting by ID
+      parameters:
+        - in: path
+          name: settingId
+          schema:
+            type: string
+          required: true
+          description: ID of the setting to update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: Setting updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Settings
+      summary: Delete a setting by ID
+      parameters:
+        - in: path
+          name: settingId
+          schema:
+            type: string
+          required: true
+          description: ID of the setting to delete
+      responses:
+        '204':
+          description: Setting deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Sale:
+      type: object
+      required:
+        - saleID
+        - date
+        - customerID
+        - productList
+        - totalAmount
+      properties:
+        saleID:
+          type: string
+          format: uuid
+          description: Unique identifier for the sale.
+        date:
+          type: string
+          format: date-time
+          description: Date and time when the sale was made.
+        customerID:
+          type: string
+          format: uuid
+          description: Unique identifier for the customer.
+        productList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Product'
+          description: List of products included in the sale.
+        totalAmount:
+          type: number
+          format: float
+          minimum: 0
+          description: Total amount of the sale.
+        discountID:
+          type: string
+          format: uuid
+          description: Unique identifier for the discount applied (if any).
+
+    Customer:
+      type: object
+      required:
+        - customerID
+        - name
+        - contactInfo
+      properties:
+        customerID:
+          type: string
+          format: uuid
+          description: Unique identifier for the customer.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Full name of the customer.
+        contactInfo:
+          type: string
+          minLength: 5
+          maxLength: 100
+          description: Contact information (e.g., email or phone number).
+        loyaltyPoints:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Loyalty points accumulated by the customer.
+
+    Product:
+      type: object
+      required:
+        - productID
+        - name
+        - price
+      properties:
+        productID:
+          type: string
+          format: uuid
+          description: Unique identifier for the product.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name of the product.
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: Price of the product.
+        description:
+          type: string
+          maxLength: 500
+          description: Detailed description of the product.
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Category to which the product belongs.
+        discountID:
+          type: string
+          format: uuid
+          description: Unique identifier for the discount applied to the product (if any).
+
+    Transaction:
+      type: object
+      required:
+        - transactionID
+        - saleID
+        - employeeID
+        - transactionDate
+        - paymentType
+        - paymentID
+      properties:
+        transactionID:
+          type: string
+          format: uuid
+          description: Unique identifier for the transaction.
+        saleID:
+          type: string
+          format: uuid
+          description: Unique identifier for the associated sale.
+        employeeID:
+          type: string
+          format: uuid
+          description: Unique identifier for the employee processing the transaction.
+        transactionDate:
+          type: string
+          format: date-time
+          description: Date and time when the transaction occurred.
+        paymentType:
+          type: string
+          enum:
+            - CreditCard
+            - DebitCard
+            - Cash
+            - Online
+          description: Method of payment used.
+        paymentID:
+          type: string
+          format: uuid
+          description: Unique identifier for the payment record.
+
+    User:
+      type: object
+      required:
+        - userID
+        - username
+        - password
+        - roleID
+      properties:
+        userID:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: '^[a-zA-Z0-9_]+$'
+          description: Username must be alphanumeric and can include underscores.
+        password:
+          type: string
+          minLength: 8
+          description: Password must be at least 8 characters long.
+        roleID:
+          type: string
+          format: uuid
+          description: Unique identifier for the user's role.
+
+    Inventory:
+      type: object
+      required:
+        - inventoryID
+        - productID
+        - quantity
+        - reorderLevel
+      properties:
+        inventoryID:
+          type: string
+          format: uuid
+          description: Unique identifier for the inventory record.
+        productID:
+          type: string
+          format: uuid
+          description: Unique identifier for the product.
+        quantity:
+          type: integer
+          minimum: 0
+          description: Quantity of the product in stock.
+        reorderLevel:
+          type: integer
+          minimum: 0
+          description: The level at which new stock should be ordered.
+        supplierID:
+          type: string
+          format: uuid
+          description: Unique identifier for the supplier.
+
+    Employee:
+      type: object
+      required:
+        - employeeID
+        - name
+        - position
+        - userID
+      properties:
+        employeeID:
+          type: string
+          format: uuid
+          description: Unique identifier for the employee.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Full name of the employee.
+        position:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Job position or title.
+        userID:
+          type: string
+          format: uuid
+          description: Unique identifier for the user account associated with the employee.
+
+    Supplier:
+      type: object
+      required:
+        - supplierID
+        - name
+        - contactInfo
+      properties:
+        supplierID:
+          type: string
+          format: uuid
+          description: Unique identifier for the supplier.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name of the supplier.
+        contactInfo:
+          type: string
+          minLength: 5
+          maxLength: 100
+          description: Contact information for the supplier.
+        productList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+          description: List of products supplied.
+
+    PurchaseOrder:
+      type: object
+      required:
+        - purchaseOrderID
+        - supplierID
+        - orderDate
+        - productList
+        - status
+      properties:
+        purchaseOrderID:
+          type: string
+          format: uuid
+          description: Unique identifier for the purchase order.
+        supplierID:
+          type: string
+          format: uuid
+          description: Unique identifier for the supplier.
+        orderDate:
+          type: string
+          format: date-time
+          description: Date and time when the purchase order was created.
+        productList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Product'
+          description: List of products ordered.
+        status:
+          type: string
+          enum:
+            - Pending
+            - Shipped
+            - Delivered
+          description: Current status of the purchase order.
+
+    Discount:
+      type: object
+      required:
+        - discountID
+        - name
+        - type
+        - value
+      properties:
+        discountID:
+          type: string
+          format: uuid
+          description: Unique identifier for the discount.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name of the discount.
+        type:
+          type: string
+          enum:
+            - Percentage
+            - FixedAmount
+          description: Type of discount.
+        value:
+          type: number
+          format: float
+          minimum: 0
+          description: Value of the discount (percentage or fixed amount).
+        applicableProducts:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of product IDs the discount applies to.
+
+    Payment:
+      type: object
+      required:
+        - paymentID
+        - transactionID
+        - amount
+        - method
+        - status
+      properties:
+        paymentID:
+          type: string
+          format: uuid
+          description: Unique identifier for the payment.
+        transactionID:
+          type: string
+          format: uuid
+          description: Unique identifier for the associated transaction.
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          description: Amount paid.
+        method:
+          type: string
+          enum:
+            - CreditCard
+            - DebitCard
+            - Cash
+            - Online
+          description: Payment method used.
+        status:
+          type: string
+          enum:
+            - Authorized
+            - Captured
+            - Failed
+          description: Status of the payment.
+
+    Role:
+      type: object
+      required:
+        - roleID
+        - name
+      properties:
+        roleID:
+          type: string
+          format: uuid
+          description: Unique identifier for the role.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Name of the role.
+        permissions:
+          type: array
+          items:
+            type: string
+          description: List of permissions assigned to the role.
+
+    Settings:
+      type: object
+      required:
+        - settingID
+        - key
+        - value
+      properties:
+        settingID:
+          type: string
+          format: uuid
+          description: Unique identifier for the setting.
+        key:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Key name of the setting.
+        value:
+          type: string
+          description: Value of the setting.
+
+    LoyaltyProgram:
+      type: object
+      required:
+        - programID
+        - customerID
+        - points
+        - tier
+      properties:
+        programID:
+          type: string
+          format: uuid
+          description: Unique identifier for the loyalty program.
+        customerID:
+          type: string
+          format: uuid
+          description: Unique identifier for the customer.
+        points:
+          type: integer
+          minimum: 0
+          description: Loyalty points accumulated.
+        tier:
+          type: string
+          enum:
+            - Bronze
+            - Silver
+            - Gold
+            - Platinum
+          description: Tier level of the loyalty program.
+
+    Notification:
+      type: object
+      required:
+        - notificationID
+        - type
+        - message
+        - timestamp
+      properties:
+        notificationID:
+          type: string
+          format: uuid
+          description: Unique identifier for the notification.
+        type:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Type or category of the notification.
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Content of the notification message.
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the notification was generated.
+
+    SalesReport:
+      type: object
+      required:
+        - totalSales
+        - totalTransactions
+        - salesByProduct
+      properties:
+        totalSales:
+          type: number
+          format: float
+          minimum: 0
+          description: Total sales amount.
+        totalTransactions:
+          type: integer
+          minimum: 0
+          description: Total number of transactions.
+        salesByProduct:
+          type: array
+          items:
+            type: object
+            required:
+              - productID
+              - quantitySold
+              - totalRevenue
+            properties:
+              productID:
+                type: string
+                format: uuid
+                description: Unique identifier for the product.
+              quantitySold:
+                type: integer
+                minimum: 0
+                description: Quantity of the product sold.
+              totalRevenue:
+                type: number
+                format: float
+                minimum: 0
+                description: Total revenue from the product.
+          description: Breakdown of sales by product.
+
+  responses:
+    UnauthorizedError:
+      description: Authorization information is missing or invalid.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized access.
+    BadRequestError:
+      description: The request was invalid or cannot be served.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Bad request.
+    NotFoundError:
+      description: The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Resource not found.
+    ServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal server error.
+
+#   securitySchemes:
+#     bearerAuth:
+#       type: http
+#       scheme: bearer
+#       bearerFormat: JWT
+
+# security:
+#   - bearerAuth: []
+  securitySchemes:
+    OAuth2Password:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: '/auth/login'
+          scopes: {}
+security:
+  - OAuth2Password: []
