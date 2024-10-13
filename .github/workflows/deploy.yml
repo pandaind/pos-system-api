@@ -3,7 +3,7 @@ name: Deploy to Vercel
 on:
   push:
     branches:
-      - main
+      - main  # Adjust if your default branch is different
 
 jobs:
   deploy:
@@ -19,9 +19,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Build project
-        run: npm run build  # If you have a build step
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20

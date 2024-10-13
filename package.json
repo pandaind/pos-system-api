@@ -1,0 +1,9 @@
+{
+    "name": "prism-vercel",
+    "version": "1.0.0",
+    "dependencies": {
+      "@stoplight/prism-http": "^4.5.0",
+      "url": "^0.11.0"
+    }
+  }
+  
