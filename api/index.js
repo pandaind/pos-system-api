@@ -1,5 +1,4 @@
-const { createInstance } = require('@stoplight/prism-http');
-const { getHttpOperationsFromResource } = require('@stoplight/http-spec');
+const { createInstance, getHttpOperationsFromResource } = require('@stoplight/prism-http');
 const { parse } = require('url');
 const path = require('path');
 
