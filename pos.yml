@@ -18,10 +18,11 @@ info:
     url: https://pandac.in
     email: support@pandac.in
 servers:
-  - url: 'https://api.pandac.in/v1'
-    description: Production server
-  - url: 'https://sandbox.api.pandac.in/v1'
-    description: Testing server
+  # - url: 'https://api.pandac.in/v1'
+  #   description: Production server
+  # - url: 'https://sandbox.api.pandac.in/v1'
+  #   description: Testing server
+  - url: 'https://pos-system-api-orpin.vercel.app/v1'
 paths:
   /auth/login:
     post:
