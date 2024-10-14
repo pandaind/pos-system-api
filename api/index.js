@@ -1,18 +1,16 @@
-const { getHttpOperationsFromResource, createInstance } = require('@stoplight/prism-http');
+const { createInstance } = require('@stoplight/prism-http');
 const { parse } = require('url');
 const fs = require('fs');
 const path = require('path');
+const { getHttpOperationsFromSpec } = require('@stoplight/prism-core');
 
 let prism;
 
 const initializePrism = async () => {
   const specPath = path.join(__dirname, '../pos.yml');
   const specContent = fs.readFileSync(specPath, 'utf8');
-  const operations = await getHttpOperationsFromResource(specContent);
-  prism = createInstance(
-    { config: { mock: { dynamic: true } } },
-    { components: { logger: { info() {}, error() {}, warn() {} } }, operations }
-  );
+  const operations = await getHttpOperationsFromSpec(specContent, { format: 'yaml' });
+  prism = createInstance({ config: { mock: { dynamic: true } } }, { operations });
 };
 
 module.exports = async (req, res) => {
@@ -55,6 +53,7 @@ module.exports = async (req, res) => {
     }
     res.end(JSON.stringify(response.body));
   } catch (error) {
+    console.error(error); // Log the error for debugging
     res.statusCode = 500;
     res.end('Internal Server Error');
   }
