@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "dependencies": {
       "@stoplight/prism-http": "^4.5.0",
+      "@stoplight/http-spec": "^6.0.0",
       "url": "^0.11.0"
     }
   }

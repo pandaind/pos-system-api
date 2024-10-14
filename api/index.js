@@ -1,21 +1,26 @@
 const { createInstance } = require('@stoplight/prism-http');
+const { getHttpOperationsFromResource } = require('@stoplight/http-spec');
 const { parse } = require('url');
-const fs = require('fs');
 const path = require('path');
-const { getHttpOperationsFromSpec } = require('@stoplight/prism-core');
 
 let prism;
 
 const initializePrism = async () => {
   const specPath = path.join(__dirname, '../pos.yml');
-  const specContent = fs.readFileSync(specPath, 'utf8');
-  const operations = await getHttpOperationsFromSpec(specContent, { format: 'yaml' });
+  const operations = await getHttpOperationsFromResource(specPath);
   prism = createInstance({ config: { mock: { dynamic: true } } }, { operations });
 };
 
 module.exports = async (req, res) => {
   if (!prism) {
-    await initializePrism();
+    try {
+      await initializePrism();
+    } catch (error) {
+      console.error('Error initializing Prism:', error);
+      res.statusCode = 500;
+      res.end('Internal Server Error during initialization');
+      return;
+    }
   }
 
   // Parse the URL and remove the '/api' prefix
@@ -30,8 +35,16 @@ module.exports = async (req, res) => {
       query: parsedUrl.query,
     },
     headers: req.headers,
-    body: req,
   };
+
+  // Collect the request body if present
+  let body = '';
+  for await (const chunk of req) {
+    body += chunk;
+  }
+  if (body) {
+    request.body = body;
+  }
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -47,14 +60,20 @@ module.exports = async (req, res) => {
 
   try {
     const response = await prism.request(request);
+
     res.statusCode = response.statusCode;
     for (const [key, value] of Object.entries(response.headers || {})) {
       res.setHeader(key, value);
     }
-    res.end(JSON.stringify(response.body));
+
+    if (response.body) {
+      res.end(typeof response.body === 'string' ? response.body : JSON.stringify(response.body));
+    } else {
+      res.end();
+    }
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    console.error('Error processing request:', error);
     res.statusCode = 500;
-    res.end('Internal Server Error');
+    res.end('Internal Server Error during request processing');
   }
 };
