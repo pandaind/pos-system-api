@@ -9,7 +9,10 @@ const initializePrism = async () => {
   const specPath = path.join(__dirname, '../pos.yml');
   const specContent = fs.readFileSync(specPath, 'utf8');
   const operations = await getHttpOperationsFromResource(specContent);
-  prism = createInstance({ config: { mock: { dynamic: true } } }, { operations });
+  prism = createInstance(
+    { config: { mock: { dynamic: true } } },
+    { components: { logger: { info() {}, error() {}, warn() {} } }, operations }
+  );
 };
 
 module.exports = async (req, res) => {
@@ -17,17 +20,32 @@ module.exports = async (req, res) => {
     await initializePrism();
   }
 
+  // Parse the URL and remove the '/api' prefix
   const parsedUrl = parse(req.url, true);
+  const requestPath = parsedUrl.pathname.replace(/^\/api/, '') || '/';
 
+  // Set up the Prism request object
   const request = {
     method: req.method,
     url: {
-      path: parsedUrl.pathname,
+      path: requestPath,
       query: parsedUrl.query,
     },
     headers: req.headers,
     body: req,
   };
+
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
 
   try {
     const response = await prism.request(request);
