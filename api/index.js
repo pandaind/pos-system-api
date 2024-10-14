@@ -1,13 +1,16 @@
-const { createInstance, getHttpOperationsFromResource } = require('@stoplight/prism-http');
+const { createClientFromSpec } = require('@stoplight/prism-http/dist/client');
+const { createInstance} = require('@stoplight/prism-http');
 const { parse } = require('url');
 const path = require('path');
 
 let prism;
 
+
 const initializePrism = async () => {
-  const specPath = path.join(__dirname, '../pos.yml');
-  const operations = await getHttpOperationsFromResource(specPath);
-  prism = createInstance({ config: { mock: { dynamic: true } } }, { operations });
+  const specPath = path.join(__dirname, '../openapi.yaml');
+  const specContent = await fs.readFile(specPath, 'utf8');
+  const client = await createClientFromSpec(specContent, { format: 'yaml' });
+  prism = createInstance({ config: { mock: { dynamic: true } } }, client);
 };
 
 module.exports = async (req, res) => {
