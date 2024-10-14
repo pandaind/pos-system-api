@@ -2,6 +2,9 @@ const { createClientFromSpec } = require('@stoplight/prism-http/dist/client');
 const { createInstance} = require('@stoplight/prism-http');
 const { parse } = require('url');
 const path = require('path');
+const fs = require('fs').promises;
+
+
 
 let prism;
 
