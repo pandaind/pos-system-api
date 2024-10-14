@@ -10,7 +10,7 @@ let prism;
 
 
 const initializePrism = async () => {
-  const specPath = path.join(__dirname, '../openapi.yaml');
+  const specPath = path.join(__dirname, '../pos.yml');
   const specContent = await fs.readFile(specPath, 'utf8');
   const client = await createClientFromSpec(specContent, { format: 'yaml' });
   prism = createInstance({ config: { mock: { dynamic: true } } }, client);
