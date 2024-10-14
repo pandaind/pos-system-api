@@ -1,84 +1,62 @@
-const { createClientFromSpec } = require('@stoplight/prism-http/dist/client');
-const { createInstance} = require('@stoplight/prism-http');
-const { parse } = require('url');
+// index.js
+const { createInstance } = require('@stoplight/prism-http');
+const { createLogger } = require('@stoplight/prism-core');
+const fs = require('fs');
 const path = require('path');
-const fs = require('fs').promises;
+const yaml = require('js-yaml'); // For parsing YAML OpenAPI files
 
-
-
-let prism;
-
-
-const initializePrism = async () => {
-  const specPath = path.join(__dirname, '../pos.yml');
-  const specContent = await fs.readFile(specPath, 'utf8');
-  const client = await createClientFromSpec(specContent, { format: 'yaml' });
-  prism = createInstance({ config: { mock: { dynamic: true } } }, client);
-};
-
-module.exports = async (req, res) => {
-  if (!prism) {
-    try {
-      await initializePrism();
-    } catch (error) {
-      console.error('Error initializing Prism:', error);
-      res.statusCode = 500;
-      res.end('Internal Server Error during initialization');
-      return;
-    }
-  }
-
-  // Parse the URL and remove the '/api' prefix
-  const parsedUrl = parse(req.url, true);
-  const requestPath = parsedUrl.pathname.replace(/^\/api/, '') || '/';
-
-  // Set up the Prism request object
-  const request = {
-    method: req.method,
-    url: {
-      path: requestPath,
-      query: parsedUrl.query,
-    },
-    headers: req.headers,
-  };
-
-  // Collect the request body if present
-  let body = '';
-  for await (const chunk of req) {
-    body += chunk;
-  }
-  if (body) {
-    request.body = body;
-  }
-
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    res.end();
-    return;
-  }
-
+async function initPrism() {
   try {
+    const specPath = path.join(__dirname, '../pos.yml');
+    const specContent = fs.readFileSync(specPath, 'utf8');
+    const spec = yaml.load(specContent); // YAML parser
+
+    // Create Prism instance
+    const prism = createInstance(
+      { config: { mock: { dynamic: true } }, components: { logger: createLogger() } },
+      spec
+    );
+
+    return prism;
+  } catch (error) {
+    console.error('Error loading OpenAPI spec:', error);
+    throw new Error('Failed to initialize Prism: ' + error.message);
+  }
+}
+
+
+async function handleRequest(req, res) {
+  try {
+    const prism = await initPrism();
+
+    // Create the request object for Prism
+    const request = {
+      method: req.method,
+      url: {
+        path: req.url,
+        query: req.query,
+      },
+      headers: req.headers,
+      body: req.body,
+    };
+
+    console.log('Sending request to Prism:', request);
+
+    // Get the mocked response from Prism
     const response = await prism.request(request);
 
-    res.statusCode = response.statusCode;
-    for (const [key, value] of Object.entries(response.headers || {})) {
-      res.setHeader(key, value);
+    if (!response) {
+      throw new Error('Prism response is undefined');
     }
 
-    if (response.body) {
-      res.end(typeof response.body === 'string' ? response.body : JSON.stringify(response.body));
-    } else {
-      res.end();
-    }
+    // Return the response to the client
+    res.status(response.output.statusCode).set(response.output.headers || {}).send(response.output.body);
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.statusCode = 500;
-    res.end('Internal Server Error during request processing');
+    console.error('Error:', error);
+    res.status(500).send({ error: 'An error occurred', details: error.message });
   }
-};
+}
+
+
+// Export the handler for use with serverless functions or local development
+module.exports = handleRequest;

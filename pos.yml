@@ -22,7 +22,7 @@ servers:
   #   description: Production server
   # - url: 'https://sandbox.api.pandac.in/v1'
   #   description: Testing server
-  - url: 'https://pos-system-api-orpin.vercel.app/v1'
+  - url: 'https://pos-system-api-orpin.vercel.app/api/v1'
 paths:
   /auth/login:
     post:
